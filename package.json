@@ -128,7 +128,7 @@
     "sync-fetch": "^0.3.1",
     "tsx": "3.8.2",
     "xbytes": "^1.7.0",
-    "ytdlp-nodejs": "^2.0.5",
+    "ytdlp-nodejs": "^2.3.4",
     "ytsr": "^3.8.4"
   },
   "resolutions": {

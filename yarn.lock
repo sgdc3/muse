@@ -5641,14 +5641,14 @@ yocto-queue@^1.1.1:
   resolved "https://registry.npmjs.org/yocto-queue/-/yocto-queue-1.2.1.tgz#36d7c4739f775b3cbc28e6136e21aa057adec418"
   integrity sha512-AyeEbWOu/TAXdxlV9wmGcR0+yh2j3vYPGOECcIj2S7MkrLyC7ne+oye2BKTItt0ii2PHk4cDy+95+LshzbXnGg==
 
-ytdlp-nodejs@^2.0.5:
-  version "2.0.5"
-  resolved "https://registry.yarnpkg.com/ytdlp-nodejs/-/ytdlp-nodejs-2.0.5.tgz#5f8f17c8592dbe5058582b5dcb4d538f5d4b35c2"
-  integrity sha512-n3FGUpBl8ARMMCJ6qpfuKepvhZUP6lqGtChcdUVEw2nlVTwYXw7mfxrC7V+GxWBw/zT2ZlrIA0XO5rPFp8GRBQ==
+ytdlp-nodejs@^2.3.4:
+  version "2.3.4"
+  resolved "https://registry.yarnpkg.com/ytdlp-nodejs/-/ytdlp-nodejs-2.3.4.tgz#cc08ef52eab6785bbaa9cc6e4aefffd52199a082"
+  integrity sha512-uLROl2N9lHsK7N7wvnYzWsCwFR8yqjOBqR82efbnPxnl0bZUmy1H2yq1J3bsjSDERTxSaG176wn7tKzTD045Xw==
 
 ytsr@^3.8.4:
   version "3.8.4"
-  resolved "https://registry.npmjs.org/ytsr/-/ytsr-3.8.4.tgz#f279eb5a50a72a1135816ea69220f76030f62358"
+  resolved "https://registry.yarnpkg.com/ytsr/-/ytsr-3.8.4.tgz#f279eb5a50a72a1135816ea69220f76030f62358"
   integrity sha512-rrJo59vDDf98mz/Cuw7Y2YiuTwSm3cs4XsXrP6yjYDXYup/aE0lRxY6XMKR3mGOHKwgLouZqFq8QRllVVVN88w==
   dependencies:
     miniget "^4.2.2"

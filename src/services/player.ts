@@ -511,7 +511,7 @@ export default class {
     const ffmpegInputOptions: string[] = [];
     let shouldCacheVideo = false;
 
-    type VideoInfoType = Awaited<ReturnType<typeof this.ytdlp.getInfoAsync>> & {
+    type VideoInfoType = Awaited<ReturnType<typeof this.ytdlp.getInfoAsync<'video'>>> & {
       media_type: string;
     };
 
@@ -526,7 +526,7 @@ export default class {
 
     if (!ffmpegInput) {
       // Not yet cached, must download
-      const info: VideoInfoType = (await this.ytdlp.getInfoAsync(song.url)) as VideoInfoType;
+      const info: VideoInfoType = (await this.ytdlp.getInfoAsync<'video'>(song.url)) as VideoInfoType;
 
       const formats = info.formats as VideoFormatType[];
 
