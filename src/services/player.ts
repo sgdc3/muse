@@ -1,6 +1,8 @@
 import {VoiceChannel, Snowflake} from 'discord.js';
 import {Readable} from 'stream';
 import hasha from 'hasha';
+import {accessSync, chmodSync, constants as fsConstants, copyFileSync, existsSync, mkdirSync} from 'fs';
+import {join} from 'path';
 import {WriteStream} from 'fs-capacitor';
 import ffmpeg from 'fluent-ffmpeg';
 import shuffle from 'array-shuffle';
@@ -10,6 +12,7 @@ import {
   AudioPlayerStatus, AudioResource,
   createAudioPlayer,
   createAudioResource, DiscordGatewayAdapterCreator,
+  entersState,
   joinVoiceChannel,
   StreamType,
   VoiceConnection,
@@ -59,6 +62,37 @@ export interface PlayerEvents {
 }
 
 export const DEFAULT_VOLUME = 100;
+const DEFAULT_YTDLP_SYSTEM_PATH = '/usr/local/bin/yt-dlp';
+const YTDLP_CACHE_DIRECTORY = ['.cache', 'muse'];
+const YTDLP_CACHE_BINARY_NAME = 'yt-dlp';
+
+function resolveYtdlpBinaryPath(sourcePath: string): string {
+  try {
+    accessSync(sourcePath, fsConstants.W_OK);
+    return sourcePath;
+  } catch {}
+
+  const homeDirectory = process.env.HOME;
+  if (!homeDirectory) {
+    return sourcePath;
+  }
+
+  const targetDirectory = join(homeDirectory, ...YTDLP_CACHE_DIRECTORY);
+  const targetPath = join(targetDirectory, YTDLP_CACHE_BINARY_NAME);
+
+  try {
+    mkdirSync(targetDirectory, {recursive: true});
+
+    if (!existsSync(targetPath)) {
+      copyFileSync(sourcePath, targetPath);
+    }
+
+    chmodSync(targetPath, 0o755);
+    return targetPath;
+  } catch {
+    return sourcePath;
+  }
+}
 
 export default class {
   public voiceConnection: VoiceConnection | null = null;
@@ -89,7 +123,14 @@ export default class {
     this.fileCache = fileCache;
     this.guildId = guildId;
 
-    this.ytdlp = new YtDlp();
+    const ytdlpBinaryPath = process.env.YTDLP_BINARY_PATH;
+    if (ytdlpBinaryPath && existsSync(ytdlpBinaryPath)) {
+      this.ytdlp = new YtDlp({binaryPath: resolveYtdlpBinaryPath(ytdlpBinaryPath)});
+    } else if (existsSync(DEFAULT_YTDLP_SYSTEM_PATH)) {
+      this.ytdlp = new YtDlp({binaryPath: resolveYtdlpBinaryPath(DEFAULT_YTDLP_SYSTEM_PATH)});
+    } else {
+      this.ytdlp = new YtDlp();
+    }
   }
 
   async connect(channel: VoiceChannel): Promise<void> {
@@ -105,8 +146,7 @@ export default class {
       adapterCreator: channel.guild.voiceAdapterCreator as DiscordGatewayAdapterCreator,
     });
 
-    const guildSettings = await getGuildSettings(this.guildId);
-
+    // Register before any await so we do not miss Ready (and register activity listener).
     // Workaround to disable keepAlive
     this.voiceConnection.on('stateChange', (oldState, newState) => {
       /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
@@ -124,9 +164,11 @@ export default class {
 
       this.currentChannel = channel;
       if (newState.status === VoiceConnectionStatus.Ready) {
-        this.registerVoiceActivityListener(guildSettings);
+        this.registerVoiceActivityListener(settings);
       }
     });
+
+    await entersState(this.voiceConnection, VoiceConnectionStatus.Ready, 30_000);
   }
 
   disconnect(): void {
@@ -585,12 +627,18 @@ export default class {
       ]);
     }
 
-    if (options.seek) {
-      ffmpegInputOptions.push('-ss', options.seek.toString());
-    }
+    const invalidSeekWindow = options.seek !== undefined && options.to !== undefined && options.to <= options.seek;
 
-    if (options.to) {
-      ffmpegInputOptions.push('-to', options.to.toString());
+    if (invalidSeekWindow) {
+      debug(`Invalid ffmpeg window seek=${String(options.seek)} to=${String(options.to)}; SponsorBlock metadata may be wrong. Playing without trim.`);
+    } else {
+      if (options.seek) {
+        ffmpegInputOptions.push('-ss', options.seek.toString());
+      }
+
+      if (options.to !== undefined) {
+        ffmpegInputOptions.push('-to', options.to.toString());
+      }
     }
 
     // TODO: volumeAdjustment
@@ -639,6 +687,12 @@ export default class {
 
     if (this.audioPlayer.listeners('stateChange').length === 0) {
       this.audioPlayer.on(AudioPlayerStatus.Idle, this.onAudioPlayerIdle.bind(this));
+    }
+
+    if (this.audioPlayer.listeners('error').length === 0) {
+      this.audioPlayer.on('error', error => {
+        debug('[AUDIO] AudioPlayer error:', error);
+      });
     }
   }
 

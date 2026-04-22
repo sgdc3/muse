@@ -1,4 +1,3 @@
-/* eslint-disable complexity */
 import {ChatInputCommandInteraction, GuildMember} from 'discord.js';
 import {inject, injectable} from 'inversify';
 import shuffle from 'array-shuffle';
@@ -13,6 +12,7 @@ import {SponsorBlock} from 'sponsorblock-api';
 import Config from './config.js';
 import KeyValueCacheProvider from './key-value-cache.js';
 import {ONE_HOUR_IN_SECONDS} from '../utils/constants.js';
+import debug from '../utils/debug.js';
 
 @injectable()
 export default class AddQueryToQueue {
@@ -139,6 +139,8 @@ export default class AddQueryToQueue {
       return song;
     }
 
+    const lengthBeforeSegments = song.length;
+
     try {
       const segments = await this.cache.wrap(
         async () => this.sponsorBlock?.getSegments(song.url, ['music_offtopic']),
@@ -170,6 +172,12 @@ export default class AddQueryToQueue {
       if (intro?.startTime <= 2) {
         song.offset = Math.floor(intro.endTime);
         song.length -= song.offset;
+      }
+
+      if (song.length < 1) {
+        debug(`SponsorBlock produced non-positive length for ${song.url}; reverting intro/outro trim`);
+        song.offset = 0;
+        song.length = lengthBeforeSegments;
       }
 
       return song;

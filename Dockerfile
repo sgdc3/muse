@@ -1,4 +1,4 @@
-FROM node:22-bookworm AS base
+FROM node:22-trixie AS base
 
 # openssl will be a required package if base is updated to 18.16+ due to node:*-slim base distro change
 # https://github.com/prisma/prisma/issues/19729#issuecomment-1591270599
@@ -8,14 +8,17 @@ RUN apt-get update \
     ffmpeg \
     tini \
     openssl \
+    curl \
     ca-certificates \
     && apt-get autoclean \
     && apt-get autoremove \
     && rm -rf /var/lib/apt/lists/*
 
-# Scarica yt-dlp da GitHub
-RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp \
-    && chmod +x /usr/local/bin/yt-dlp
+# Install yt-dlp in a deterministic location
+RUN mkdir -p /usr/local/share/muse/bin \
+    && curl -L https://github.com/yt-dlp/yt-dlp-nightly-builds/releases/latest/download/yt-dlp -o /usr/local/share/muse/bin/yt-dlp \
+    && chmod +x /usr/local/share/muse/bin/yt-dlp \
+    && ln -sf /usr/local/share/muse/bin/yt-dlp /usr/local/bin/yt-dlp
 
 # Install dependencies
 FROM base AS dependencies
@@ -67,5 +70,6 @@ ENV NODE_ENV=production
 ENV COMMIT_HASH=$COMMIT_HASH
 ENV BUILD_DATE=$BUILD_DATE
 ENV ENV_FILE=/config
+ENV YTDLP_BINARY_PATH=/usr/local/share/muse/bin/yt-dlp
 
 CMD ["tini", "--", "node", "--enable-source-maps", "dist/scripts/migrate-and-start.js"]

@@ -3,11 +3,13 @@ import {ChannelType, Guild, GuildMember, User, VoiceChannel} from 'discord.js';
 export const isUserInVoice = (guild: Guild, user: User): boolean => {
   let inVoice = false;
 
-  guild.channels.cache.filter(channel => channel.type === ChannelType.GuildVoice).forEach(channel => {
-    if ((channel as VoiceChannel).members.find(member => member.id === user.id)) {
-      inVoice = true;
-    }
-  });
+  guild.channels.cache
+    .filter((channel): channel is VoiceChannel => channel.type === ChannelType.GuildVoice)
+    .forEach(channel => {
+      if (channel.members.find(member => member.id === user.id)) {
+        inVoice = true;
+      }
+    });
 
   return inVoice;
 };
@@ -40,7 +42,7 @@ export const getMostPopularVoiceChannel = (guild: Guild): [VoiceChannel, number]
 
   const voiceChannels: PopularResult[] = [];
 
-  for (const [_, channel] of guild.channels.cache) {
+  for (const [, channel] of guild.channels.cache) {
     if (channel.type === ChannelType.GuildVoice) {
       const size = getSizeWithoutBots(channel);
 
